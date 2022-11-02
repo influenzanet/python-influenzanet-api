@@ -5,7 +5,7 @@ from getpass import getpass
 
 
 class ManagementAPIClient:
-    def __init__(self, management_api_url, login_credentials=None, participant_api_url=None, use_external_idp=False, verbose=True):
+    def __init__(self, management_api_url, login_credentials=None, participant_api_url=None, use_external_idp=False, use_no_login=False, verbose=True):
         self.management_api_url = management_api_url
         self.participant_api_url = participant_api_url
 
@@ -13,9 +13,13 @@ class ManagementAPIClient:
         self._refresh_token = None
         self.auth_header = None
         self.verbose = verbose
+
         if self.verbose:
             print('Initilize client')
-            
+
+        if use_no_login:
+            return
+
         if login_credentials is None:
             print('No auth infos found. Exiting.')
             exit()
@@ -24,6 +28,12 @@ class ManagementAPIClient:
             self.login_with_saml(login_credentials)
         else:
             self.login(login_credentials)
+
+    def check_study_service_status(self):
+        r = requests.get(self.participant_api_url + '/v1/status/study-service')
+        if r.status_code != 200:
+            raise ValueError(r.content)
+        print(r.content)
 
     def login_with_saml(self, auth_infos):
         print("##################################")
