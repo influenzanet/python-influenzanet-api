@@ -271,13 +271,14 @@ class ManagementAPIClient:
             return data['infos']
         return data
 
-    def get_survey_definition(self, study_key, survey_key):
+
+    def get_survey_definition(self, study_key, survey_key, version_id=''):
         if self.auth_header is None:
             raise ValueError('need to login first')
         if self.auth_header is None:
             raise ValueError('need to login first')
         r = requests.get(
-            self.management_api_url + '/v1/study/' + study_key + '/survey/' + survey_key,
+            self.management_api_url + '/v1/study/' + study_key + '/survey/' + survey_key + '/' + version_id,
             headers={'Authorization': 'Bearer ' + self.token})
         if r.status_code != 200:
             if json.loads(r.content.decode())["error"] == "mongo: no documents in result":
