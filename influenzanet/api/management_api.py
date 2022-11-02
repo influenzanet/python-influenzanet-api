@@ -192,6 +192,7 @@ class ManagementAPIClient:
         if r.status_code != 200:
             raise ValueError(r.content)
         return r.json()
+        if self.auth_header is None:
         # print('study rules updated succcessfully')
 
     def delete_study(self, study_key):
