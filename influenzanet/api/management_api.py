@@ -298,6 +298,100 @@ class ManagementAPIClient:
             raise ValueError(r.content)
         print("survey successfully removed")
 
+    def get_participant_states(self, study_key: str, status:str=None):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        url = "{}/v1/data/{}/participants".format(
+                self.management_api_url,
+                study_key,
+            )
+
+        if status is not None:
+            params = {
+                "status": status
+            }
+        else:
+            params = None
+        r = requests.get(url, headers=self.auth_header, params=params)
+        if r.status_code != 200:
+            print(r.content)
+            return None
+        return r.json()
+
+    def get_participant_reports(self, study_key: str, report_key:str=None, participant_id:str=None, since:float=None, until:float=None):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        url = "{}/v1/data/{}/reports".format(
+                self.management_api_url,
+                study_key,
+            )
+
+        params = {}
+        if report_key is not None:
+            params["reportKey"] = report_key
+        if participant_id is not None:
+            params["participant"] = participant_id
+        if since is not None:
+            params["from"] = since
+        if until is not None:
+            params["until"] = until
+        r = requests.get(url, headers=self.auth_header, params=params)
+        if r.status_code != 200:
+            print(r.content)
+            return None
+        return r.json()
+
+    def get_file_infos(self, study_key: str, file_type:str=None, participant_id:str=None, since:float=None, until:float=None):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        url = "{}/v1/data/{}/file-infos".format(
+                self.management_api_url,
+                study_key,
+            )
+
+        params = {}
+        if file_type is not None:
+            params["fileType"] = file_type
+        if participant_id is not None:
+            params["participant"] = participant_id
+        if since is not None:
+            params["from"] = since
+        if until is not None:
+            params["until"] = until
+        r = requests.get(url, headers=self.auth_header, params=params)
+        if r.status_code != 200:
+            print(r.content)
+            return None
+        return r.json()
+
+    def download_file(self, study_key: str, file_id:str):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        url = "{}/v1/data/{}/file".format(
+                self.management_api_url,
+                study_key,
+            )
+
+        params = {}
+        params["id"] = file_id
+        r = requests.get(url, headers=self.auth_header, params=params)
+        if r.status_code != 200:
+            print(r.content)
+            return None
+        return r.content
+
+    def get_confidential_responses(self, study_key: str, query):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        url = "{}/v1/data/{}/fetch-confidential-responses".format(
+                self.management_api_url,
+                study_key,
+            )
+        r = requests.post(url, headers=self.auth_header, data=json.dumps(query))
+        if r.status_code != 200:
+            print(r.content)
+            return None
+        return r.json()
     def get_response_statistics(self, study_key, start=None, end=None):
         if self.auth_header is None:
             raise ValueError('need to login first')
