@@ -5,7 +5,7 @@ from getpass import getpass
 
 
 class ManagementAPIClient:
-    def __init__(self, management_api_url, login_credentials=None, participant_api_url=None, use_external_idp=False, verbose=True):
+    def __init__(self, management_api_url, login_credentials=None, participant_api_url=None, use_external_idp=False, use_no_login=False, verbose=True):
         self.management_api_url = management_api_url
         self.participant_api_url = participant_api_url
 
@@ -13,9 +13,13 @@ class ManagementAPIClient:
         self._refresh_token = None
         self.auth_header = None
         self.verbose = verbose
+
         if self.verbose:
             print('Initilize client')
-            
+
+        if use_no_login:
+            return
+
         if login_credentials is None:
             print('No auth infos found. Exiting.')
             exit()
@@ -24,6 +28,12 @@ class ManagementAPIClient:
             self.login_with_saml(login_credentials)
         else:
             self.login(login_credentials)
+
+    def check_study_service_status(self):
+        r = requests.get(self.participant_api_url + '/v1/status/study-service')
+        if r.status_code != 200:
+            raise ValueError(r.content)
+        print(r.content)
 
     def login_with_saml(self, auth_infos):
         print("##################################")
@@ -61,7 +71,7 @@ class ManagementAPIClient:
         resp = r.json()
         if 'secondFactorNeeded' in resp.keys() and resp['secondFactorNeeded']:
             verification_code = input('Enter verification code:')
-            credentials['verificationCode'] = verification_code
+            credentials['verificationCode'] = verification_code.replace('-', '').replace(' ', '').strip()
             r = requests.post(
                 self.management_api_url + '/v1/auth/login-with-email', data=json.dumps(credentials))
             if r.status_code != 200:
@@ -138,6 +148,27 @@ class ManagementAPIClient:
             raise ValueError(r.content)
         print('study props updated succcessfully')
 
+    def get_study_notification_subs(self, study_key):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        r = requests.get(self.management_api_url + '/v1/study/' + study_key + '/notification-subscriptions', headers=self.auth_header)
+        if r.status_code != 200:
+            raise ValueError(r.content)
+        return r.json()
+
+    def update_study_notification_subs(self, study_key, subscritions):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        r = requests.post(self.management_api_url + '/v1/study/' + study_key + '/notification-subscriptions', headers=self.auth_header,
+                          data=json.dumps({
+                              'subscriptions': subscritions
+                          }))
+        if r.status_code != 200:
+            raise ValueError(r.content)
+        print('study notification subscriptions updated succcessfully')
+        return r.json()
+
+
     def update_study_rules(self, study_key, rules):
         if self.auth_header is None:
             raise ValueError('need to login first')
@@ -157,6 +188,19 @@ class ManagementAPIClient:
                           data=json.dumps({
                               'studyKey': study_key,
                               'rules': rules
+                          }))
+        if r.status_code != 200:
+            raise ValueError(r.content)
+        return r.json()
+
+    def run_custom_study_rules_for_single_participant(self, study_key, rules, pid: str):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        r = requests.post(self.management_api_url + '/v1/study/' + study_key + '/run-rules-for-single-participant', headers=self.auth_header,
+                          data=json.dumps({
+                              'studyKey': study_key,
+                              'rules': rules,
+                              'participantId': pid,
                           }))
         if r.status_code != 200:
             raise ValueError(r.content)
@@ -227,13 +271,14 @@ class ManagementAPIClient:
             return data['infos']
         return data
 
-    def get_survey_definition(self, study_key, survey_key):
+
+    def get_survey_definition(self, study_key, survey_key, version_id=''):
         if self.auth_header is None:
             raise ValueError('need to login first')
         if self.auth_header is None:
             raise ValueError('need to login first')
         r = requests.get(
-            self.management_api_url + '/v1/study/' + study_key + '/survey/' + survey_key,
+            self.management_api_url + '/v1/study/' + study_key + '/survey/' + survey_key + '/' + version_id,
             headers={'Authorization': 'Bearer ' + self.token})
         if r.status_code != 200:
             if json.loads(r.content.decode())["error"] == "mongo: no documents in result":
@@ -243,15 +288,153 @@ class ManagementAPIClient:
             return None
         return r.json()
 
-    def remove_survey_from_study(self, study_key, survey_key):
+    def get_survey_keys(self, study_key):
         if self.auth_header is None:
             raise ValueError('need to login first')
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        r = requests.get(
+            self.management_api_url + '/v1/study/' + study_key + '/survey-keys',
+            headers={'Authorization': 'Bearer ' + self.token})
+        if r.status_code != 200:
+            if json.loads(r.content.decode())["error"] == "mongo: no documents in result":
+                print('Survey keys does not exist in this study yet.')
+            else:
+                print(r.content)
+            return None
+        return r.json()
+
+    def get_survey_history(self, study_key, survey_key):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        url = '{}/v1/study/{}/survey/{}/versions'.format(self.management_api_url, study_key, survey_key)
+        r = requests.get(url, headers={'Authorization': 'Bearer ' + self.token})
+        if r.status_code != 200:
+            if json.loads(r.content.decode())["error"] == "mongo: no documents in result":
+                print('Survey does not exist in this study yet.')
+            else:
+                print(r.content)
+            return None
+        return r.json()
+
+    def unpublish_survey(self, study_key, survey_key):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        url = '{}/v1/study/{}/survey/{}'.format(self.management_api_url, study_key, survey_key)
         r = requests.delete(
-            self.management_api_url + '/v1/study/' + study_key + '/survey/' + survey_key,
+            url,
+            headers={'Authorization': 'Bearer ' + self.token})
+        if r.status_code != 200:
+            raise ValueError(r.content)
+        print("survey successfully unpublished")
+
+    def remove_survey_version(self, study_key, survey_key, version_id):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        url = '{}/v1/study/{}/survey/{}/{}'.format(self.management_api_url, study_key, survey_key, version_id)
+        r = requests.delete(
+            url,
             headers={'Authorization': 'Bearer ' + self.token})
         if r.status_code != 200:
             raise ValueError(r.content)
         print("survey successfully removed")
+
+    def get_participant_states(self, study_key: str, status:str=None):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        url = "{}/v1/data/{}/participants".format(
+                self.management_api_url,
+                study_key,
+            )
+
+        if status is not None:
+            params = {
+                "status": status
+            }
+        else:
+            params = None
+        r = requests.get(url, headers=self.auth_header, params=params)
+        if r.status_code != 200:
+            print(r.content)
+            return None
+        return r.json()
+
+    def get_participant_reports(self, study_key: str, report_key:str=None, participant_id:str=None, since:float=None, until:float=None):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        url = "{}/v1/data/{}/reports".format(
+                self.management_api_url,
+                study_key,
+            )
+
+        params = {}
+        if report_key is not None:
+            params["reportKey"] = report_key
+        if participant_id is not None:
+            params["participant"] = participant_id
+        if since is not None:
+            params["from"] = since
+        if until is not None:
+            params["until"] = until
+        r = requests.get(url, headers=self.auth_header, params=params)
+        if r.status_code != 200:
+            print(r.content)
+            return None
+        return r.json()
+
+    def get_file_infos(self, study_key: str, file_type:str=None, participant_id:str=None, since:float=None, until:float=None):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        url = "{}/v1/data/{}/file-infos".format(
+                self.management_api_url,
+                study_key,
+            )
+
+        params = {}
+        if file_type is not None:
+            params["fileType"] = file_type
+        if participant_id is not None:
+            params["participant"] = participant_id
+        if since is not None:
+            params["from"] = since
+        if until is not None:
+            params["until"] = until
+        r = requests.get(url, headers=self.auth_header, params=params)
+        if r.status_code != 200:
+            print(r.content)
+            return None
+        return r.json()
+
+    def download_file(self, study_key: str, file_id:str):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        url = "{}/v1/data/{}/file".format(
+                self.management_api_url,
+                study_key,
+            )
+
+        params = {}
+        params["id"] = file_id
+        r = requests.get(url, headers=self.auth_header, params=params)
+        if r.status_code != 200:
+            print(r.content)
+            return None
+        return r.content
+
+    def get_confidential_responses(self, study_key: str, query):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        url = "{}/v1/data/{}/fetch-confidential-responses".format(
+                self.management_api_url,
+                study_key,
+            )
+        r = requests.post(url, headers=self.auth_header, data=json.dumps(query))
+        if r.status_code != 200:
+            print(r.content)
+            return None
+        return r.json()
 
     def get_response_statistics(self, study_key, start=None, end=None):
         if self.auth_header is None:
