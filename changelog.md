@@ -4,7 +4,7 @@
 
 ### Breaking change
 
-- management api method `save_survey_to_study` expects the now the survey object (without the wrapper containing the study key), and generates the payload for the upload itself. This is to avoid redundant / potentially conflicting / information to be passed from the outside.
+- management api method `save_survey_to_study` expects now the survey object (without the wrapper containing the study key), and generates the payload for the upload itself. This is to avoid redundant / potentially conflicting / information to be passed from the outside.
 
 ## v1.0
 
