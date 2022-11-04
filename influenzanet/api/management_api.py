@@ -253,8 +253,13 @@ class ManagementAPIClient:
     def save_survey_to_study(self, study_key, survey_object):
         if self.auth_header is None:
             raise ValueError('need to login first')
+
+        upload_obj = {
+            "studyKey": study_key,
+            "survey": survey_object
+        }
         r = requests.post(self.management_api_url + '/v1/study/' + study_key +
-                          '/surveys', headers=self.auth_header, data=json.dumps(survey_object))
+                          '/surveys', headers=self.auth_header, data=json.dumps(upload_obj))
         if r.status_code != 200:
             raise ValueError(r.content)
         print('survey saved succcessfully')
