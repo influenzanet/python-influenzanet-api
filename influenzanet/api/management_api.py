@@ -280,8 +280,6 @@ class ManagementAPIClient:
     def get_survey_definition(self, study_key, survey_key, version_id=''):
         if self.auth_header is None:
             raise ValueError('need to login first')
-        if self.auth_header is None:
-            raise ValueError('need to login first')
         r = requests.get(
             self.management_api_url + '/v1/study/' + study_key + '/survey/' + survey_key + '/' + version_id,
             headers={'Authorization': 'Bearer ' + self.token})
@@ -296,8 +294,6 @@ class ManagementAPIClient:
     def get_survey_keys(self, study_key):
         if self.auth_header is None:
             raise ValueError('need to login first')
-        if self.auth_header is None:
-            raise ValueError('need to login first')
         r = requests.get(
             self.management_api_url + '/v1/study/' + study_key + '/survey-keys',
             headers={'Authorization': 'Bearer ' + self.token})
@@ -310,8 +306,6 @@ class ManagementAPIClient:
         return r.json()
 
     def get_survey_history(self, study_key, survey_key):
-        if self.auth_header is None:
-            raise ValueError('need to login first')
         if self.auth_header is None:
             raise ValueError('need to login first')
         url = '{}/v1/study/{}/survey/{}/versions'.format(self.management_api_url, study_key, survey_key)
