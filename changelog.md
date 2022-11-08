@@ -1,5 +1,10 @@
 # Changelog
 
+
+## v1.1.1
+ - Fix `get_survey_definition` url when no version is provided
+ - remove duplicate lines
+
 ## v1.1
 
 ### Breaking change

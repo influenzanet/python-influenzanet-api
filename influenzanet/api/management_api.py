@@ -276,13 +276,17 @@ class ManagementAPIClient:
             return data['infos']
         return data
 
-
     def get_survey_definition(self, study_key, survey_key, version_id=''):
+        """
+            Load a Survey definition 
+            If version_id is empty load the last published version (currents)
+        """
         if self.auth_header is None:
             raise ValueError('need to login first')
-        r = requests.get(
-            self.management_api_url + '/v1/study/' + study_key + '/survey/' + survey_key + '/' + version_id,
-            headers={'Authorization': 'Bearer ' + self.token})
+        url = self.management_api_url + '/v1/study/' + study_key + '/survey/' + survey_key 
+        if version_id != "":
+            url += '/' + version_id
+        r = requests.get(url, headers={'Authorization': 'Bearer ' + self.token})
         if r.status_code != 200:
             if json.loads(r.content.decode())["error"] == "mongo: no documents in result":
                 print('Survey key does not exist in this study yet.')
