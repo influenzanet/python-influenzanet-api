@@ -7,7 +7,7 @@ name = "influenzanet.api"
 dynamic = ["version"]
 authors = [
   { name="Peter Hevesi", email="hevesi@coneno.com" },
-  { name="Clément Turbelin", email="clement.turbelin@iplesp.upmc.fr" },
+  { name="Clement Turbelin", email="clement.turbelin@iplesp.upmc.fr" },
 ]
 description = "Influenzanet API python library"
 license = {text = "Apache-2.0"}
