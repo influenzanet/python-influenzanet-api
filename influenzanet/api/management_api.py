@@ -676,3 +676,4 @@ class ManagementAPIClient:
         if r.status_code != 200:
             raise ValueError(r.json())
         print('user created for ' + user_object['accountId'])
+        return r.json()
