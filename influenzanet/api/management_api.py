@@ -524,6 +524,7 @@ class ManagementAPIClient:
         if r.status_code != 200:
             print(r.content)
             return None
+        r.encoding = 'utf-8'
         return r.text
 
     def get_survey_info_preview_csv(self,
