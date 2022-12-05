@@ -262,6 +262,7 @@ class ManagementAPIClient:
                           '/surveys', headers=self.auth_header, data=json.dumps(upload_obj))
         if r.status_code != 200:
             raise ValueError(r.content)
+        return r.json()
         print('survey saved succcessfully')
 
     def get_surveys_in_study(self, study_key, extract_infos=False):
