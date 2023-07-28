@@ -279,12 +279,12 @@ class ManagementAPIClient:
 
     def get_survey_definition(self, study_key, survey_key, version_id=''):
         """
-            Load a Survey definition 
+            Load a Survey definition
             If version_id is empty load the last published version (currents)
         """
         if self.auth_header is None:
             raise ValueError('need to login first')
-        url = self.management_api_url + '/v1/study/' + study_key + '/survey/' + survey_key 
+        url = self.management_api_url + '/v1/study/' + study_key + '/survey/' + survey_key
         if version_id != "":
             url += '/' + version_id
         r = requests.get(url, headers={'Authorization': 'Bearer ' + self.token})
@@ -348,7 +348,7 @@ class ManagementAPIClient:
     def get_participant_states(self, study_key: str, status:str=None):
         if self.auth_header is None:
             raise ValueError('need to login first')
-        url = "{}/v1/data/{}/participants".format(
+        url = "{}/v1/data/{}/participants/all".format(
                 self.management_api_url,
                 study_key,
             )

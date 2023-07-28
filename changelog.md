@@ -1,13 +1,18 @@
 # Changelog
 
+## v1.1.3
+
+- change URL of fetching participant states, to keep the behaviour after the changes in management-api v1.4.0.
+
 ## v1.1.2
 
 - return results for `migrate_user` and `save_survey_to_study`
 - set encoding of the exported response in `get_response_csv`
 
 ## v1.1.1
- - Fix `get_survey_definition` url when no version is provided
- - remove duplicate lines
+
+- Fix `get_survey_definition` url when no version is provided
+- remove duplicate lines
 
 ## v1.1
 
