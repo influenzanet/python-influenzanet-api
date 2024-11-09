@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.2
+
+- Add study rules endpoint and corresponding methods `current_study_rules`, `study_rules_history`
+
 ## v1.1.3
 
 - change URL of fetching participant states, to keep the behaviour after the changes in management-api v1.4.0.

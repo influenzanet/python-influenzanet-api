@@ -29,6 +29,20 @@ class ManagementAPIClient:
         else:
             self.login(login_credentials)
 
+    def is_mongo_empty_doc(self, r):
+        """
+            Capture mongo no document in results
+        """
+        try:
+         e = json.loads(r.content.decode())
+         if isinstance(e, dict) and "error" in e:
+             msg = e["error"]
+             if isinstance(msg, str):
+                 return msg == "mongo: no documents in result"
+        except:
+            pass
+        return False
+
     def check_study_service_status(self):
         r = requests.get(self.participant_api_url + '/v1/status/study-service')
         if r.status_code != 200:
@@ -206,6 +220,24 @@ class ManagementAPIClient:
             raise ValueError(r.content)
         return r.json()
         # print('study rules updated succcessfully')
+
+    def current_study_rules(self, study_key):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        r = requests.get(self.management_api_url + '/v1/study/' + study_key + '/rules', headers=self.auth_header)
+        if r.status_code != 200:
+            if self.is_mongo_empty_doc(r):
+                return []
+            raise ValueError(r.content)
+        return r.json()
+
+    def study_rules_history(self, study_key):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        r = requests.get(self.management_api_url + '/v1/study/' + study_key + '/rules/versions', headers=self.auth_header)
+        if r.status_code != 200:
+            raise ValueError(r.content)
+        return r.json()
 
     def delete_study(self, study_key):
         if self.auth_header is None:
