@@ -424,6 +424,35 @@ class ManagementAPIClient:
             print(r.content)
             return None
         return r.json()
+    
+    def get_participant_state_paginated(self, study_key: str,  page:int, page_size:int, query:dict=None, sorted_by:dict=None):
+        """
+            Get participant states with pagination support
+        """
+        if self.auth_header is None:
+            raise ValueError('need to login first')
+        url = "{}/v1/data/{}/participants".format(
+                self.management_api_url,
+                study_key,
+            )
+        
+        def encode_dict(d):
+            if d is None or len(d) == 0:
+                return ""
+            return json.dumps(d, indent=None)
+
+        params = {
+            "page":page,
+            "pageSize": page_size,
+            "query":  encode_dict(query),
+            "sortedBy": encode_dict(sorted_by)
+        }
+       
+        r = requests.get(url, headers=self.auth_header, params=params)
+        if r.status_code != 200:
+            raise ApiError(r.content, r.status_code)
+        return r.json()
+
 
     def get_participant_reports(self, study_key: str, report_key:str=None, participant_id:str=None, since:float=None, until:float=None):
         if self.auth_header is None:
