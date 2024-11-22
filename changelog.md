@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3
+
+- Add endpoint `get_participant_state_paginated` 
+- Add endpoint for `get_survey_responses_json_paginated`
+- Add pagination helper class `ParticpantStatePaginaged` & SurveyResponseJSONPaginated to iter over fetched results using the same interface
+
 ## v1.2
 
 - Add study rules endpoint and corresponding methods `current_study_rules`, `study_rules_history`

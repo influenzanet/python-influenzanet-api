@@ -2,13 +2,14 @@ import json
 from time import sleep, time
 import requests
 from getpass import getpass
+from typing import Optional,Dict
 
 class ApiError(ValueError):
     """ 
         Api Error can be used to return the error with status
     """
     def __init__(self, message, status=None):
-        super(ValueError).__init__(message)
+        super(ValueError,self).__init__(message)
         self.status = status
         
     def getApiError(self):
@@ -20,7 +21,32 @@ class ApiError(ValueError):
         except:
             pass
         return self.message
+    
+class ReponseMeta:
 
+    def __init__(self, position:Optional[bool]=None, init: Optional[bool]=None, displayed: Optional[bool]=None, responsed: Optional[bool]=None):
+        self.position = position
+        self.init = init
+        self.displayed = displayed
+        self.responded = responsed
+
+    def toQuery(self)->Dict:
+        p = {}
+        def toBool(n: bool):
+            if n:
+                return 'true'
+            else:
+                return 'false'
+            
+        if self.position is not None:
+            p['withPositions'] = toBool(self.position)
+        if self.init is not None:
+            p['withInitTimes'] = toBool(self.init)
+        if self.displayed is not None:
+            p['withDisplayTimes'] = toBool(self.displayed)
+        if self.responded is not None:
+            p['withResponseTimes'] = toBool(self.responded)
+        return p
 
 class ManagementAPIClient:
 
@@ -108,6 +134,10 @@ class ManagementAPIClient:
             return True
         current = int(time())
         return self.token_expires < current
+    
+    def check_auth(self):
+        if self.auth_header is None:
+            raise ValueError('need to login first')
 
     def login(self, credentials):
         r = requests.post(
@@ -429,8 +459,8 @@ class ManagementAPIClient:
         """
             Get participant states with pagination support
         """
-        if self.auth_header is None:
-            raise ValueError('need to login first')
+        self.check_auth()
+
         url = "{}/v1/data/{}/participants".format(
                 self.management_api_url,
                 study_key,
@@ -673,6 +703,58 @@ class ManagementAPIClient:
             print(r.content)
             return None
         return r.json()
+
+    #surveyResponsesGroup.GET("/response-with-pagination/json", h.getResponsesFlatJSONWithPagination)
+
+    def get_survey_responses_json_paginated(self, 
+            study_key: str, 
+            survey_key: str, 
+            start:Optional[int] = None, 
+            end:Optional[int]=None,  
+            page: Optional[int]=None, 
+            page_size: Optional[int]=None,
+            key_separator:Optional[str]=None,
+            short_keys:Optional[bool]=None,
+            meta_infos:Optional[ReponseMeta]=None
+            ):
+
+        self.check_auth()
+        params = {}
+        params["sep"] = key_separator
+        if meta_infos is not None:
+            params.update(meta_infos.toQuery())
+        if start is not None:
+            params["from"] = int(start)
+        if end is not None:
+            params["until"] = int(end)
+
+        if short_keys:
+            params["shortKeys"] = "true"
+        else:
+            params["shortKeys"] = "false"
+
+        params['page'] = page
+        params['pageSize'] = page_size
+
+        url = "{}/v1/data/{}/survey/{}/response-with-pagination/json".format(
+            self.management_api_url,
+            study_key,
+            survey_key,
+        )
+        r = requests.get(url, headers=self.auth_header, params=params)
+        if r.status_code != 200:
+            raise ApiError(r.content, r.status_code)
+        
+        # V1 = 2 json concatenated, first is pagination info and then responses
+        content = r.text
+        index = content.find('}')
+        pagination = content[0:(index+1)]
+        data = content[(index+1):]
+        
+        return {
+            'pagination': json.loads(pagination),
+            'responses': json.loads(data)
+        }   
 
     def get_all_templates(self):
         if self.auth_header is None:

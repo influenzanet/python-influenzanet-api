@@ -1,6 +1,6 @@
 
-from .management_api import ManagementAPIClient, ApiError    
-
+from .management_api import ManagementAPIClient, ApiError, ReponseMeta
+from typing import Optional
 class ResultError(ValueError):
     def __init__(self, message, result):
         super(ValueError, self).__init__(message)
@@ -39,12 +39,13 @@ class PaginatedRequest:
         self.field_page_count = 'pageCount'
         self.field_items = 'items'
         self.field_total = 'itemCount'
+        self.use_pagination_object = False
         
-    def response_fields(self):
+    def pagination_fields(self):
         """
             Expected fields to have in the result
         """
-        return [self.field_page, self.field_page_size, self.field_page_count, self.field_items]
+        return [self.field_page, self.field_page_size, self.field_page_count]
     
     def fetch(self):
         """
@@ -75,21 +76,29 @@ class PaginatedRequest:
         r = self.fetch()
         if not isinstance(r, dict):
             raise ResultError("Result is not a dictionnary", r)
-        for field in self.response_fields():
-            if field not in r:
-                raise ResultError("Result doenst contains '%s' field" % (field), r)
-        page_count = r[self.field_page_count]
+        if self.use_pagination_object:
+            pagination = r['pagination']
+        else:
+            pagination = r
+        for field in self.pagination_fields():
+            if field not in pagination:
+                raise ResultError("Result pagination doenst contains '%s' field" % (field), pagination)
+        
+        if self.field_items not in r:
+            raise ResultError("Result doenst contains '%s' field" % (field), r)
+        
+        page_count = pagination[self.field_page_count]
         if self.page_count is None:
             self.page_count = page_count
         else:
             if self.page_count != page_count:
                 print("Warning return page_count %d is not the same as returned in initial iteration (%d)" % (page_count, self.page_count))
 
-        if self.field_total in r:
-            total = r[self.field_total]
+        if self.field_total in pagination:
+            total = pagination[self.field_total]
             if self.total_count is None:
                 self.total_count = total
-        current = r[self.field_page]
+        current = pagination[self.field_page]
         results = PaginatedResult(current, r[self.field_items])
         self.page = current + 1
         return results
@@ -105,3 +114,25 @@ class ParticpantStatePaginaged(PaginatedRequest):
     
     def fetch(self):
         return self.client.get_participant_state_paginated(self.study_key, self.page, self.page_size, self.query, self.sorted_by)
+    
+class SurveyResponseJSONPaginated(PaginatedRequest):
+
+    def __init__(self, client:ManagementAPIClient, 
+            page_size:int, 
+            study_key: str, 
+            survey_key: str, 
+            **kwargs):
+        super().__init__(client, 1, page_size)
+        self.use_pagination_object = True
+        self.field_page = 'page'
+        self.field_page_size = 'page_size'
+        self.field_page_count = 'page_count'
+        self.field_total = 'item_count'
+        self.field_items = 'responses'
+        self.study_key = study_key
+        self.survey_key = survey_key
+        self.args = kwargs
+    
+    def fetch(self):
+        return self.client.get_survey_responses_json_paginated(self.study_key, self.survey_key, page=self.page, page_size=self.page_size, **self.args)
+    
