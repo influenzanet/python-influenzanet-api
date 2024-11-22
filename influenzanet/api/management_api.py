@@ -3,6 +3,25 @@ from time import sleep, time
 import requests
 from getpass import getpass
 
+class ApiError(ValueError):
+    """ 
+        Api Error can be used to return the error with status
+    """
+    def __init__(self, message, status=None):
+        super(ValueError).__init__(message)
+        self.status = status
+        
+    def getApiError(self):
+        try:
+         e = json.loads(self.message)
+         if isinstance(e, dict) and "error" in e:
+             msg = e["error"]
+             return msg
+        except:
+            pass
+        return self.message
+
+
 class ManagementAPIClient:
 
     def __init__(self, management_api_url, login_credentials=None, participant_api_url=None, use_external_idp=False, use_no_login=False, verbose=True):
