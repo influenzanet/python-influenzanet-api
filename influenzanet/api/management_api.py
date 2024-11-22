@@ -1,10 +1,10 @@
 import json
-from time import sleep
+from time import sleep, time
 import requests
 from getpass import getpass
 
-
 class ManagementAPIClient:
+
     def __init__(self, management_api_url, login_credentials=None, participant_api_url=None, use_external_idp=False, use_no_login=False, verbose=True):
         self.management_api_url = management_api_url
         self.participant_api_url = participant_api_url
@@ -12,6 +12,7 @@ class ManagementAPIClient:
         self.token = None
         self._refresh_token = None
         self.auth_header = None
+        self.token_expires = None # Time when token will be expired
         self.verbose = verbose
 
         if self.verbose:
@@ -76,6 +77,19 @@ class ManagementAPIClient:
         print("\n\nFinished login flow.")
         print("##################################")
 
+    def handle_token_response(self, token_data):
+        self.token = token_data['accessToken']
+        self._refresh_token = token_data['refreshToken']
+        # Token expiration time is given in minutes
+        self.token_expires = int(time()) + (token_data['expiresIn'] * 60)
+        self.auth_header = {'Authorization': 'Bearer ' + self.token}
+
+    def is_token_expired(self):
+        if self.token_expires is None:
+            return True
+        current = int(time())
+        return self.token_expires < current
+
     def login(self, credentials):
         r = requests.post(
             self.management_api_url + '/v1/auth/login-with-email', data=json.dumps(credentials))
@@ -92,10 +106,7 @@ class ManagementAPIClient:
                 print(r.content)
                 exit()
             resp = r.json()
-
-        self.token = resp['token']['accessToken']
-        self._refresh_token = resp['token']['refreshToken']
-        self.auth_header = {'Authorization': 'Bearer ' + self.token}
+        self.handle_token_response(resp['token'])
         if self.verbose:
             print('Successfully logged in.')
 
@@ -114,10 +125,9 @@ class ManagementAPIClient:
         if r.status_code != 200:
             raise ValueError(r.content)
         resp = r.json()
-        self.token = resp['accessToken']
-        self._refresh_token = resp['refreshToken']
-        self.auth_header = {'Authorization': 'Bearer ' + self.token}
-
+        self.handle_token_response(resp)
+        return True
+        
     def get_studies(self):
         """
             Get list of studies
@@ -295,7 +305,6 @@ class ManagementAPIClient:
         if r.status_code != 200:
             raise ValueError(r.content)
         return r.json()
-        print('survey saved succcessfully')
 
     def get_surveys_in_study(self, study_key, extract_infos=False):
         if self.auth_header is None:
