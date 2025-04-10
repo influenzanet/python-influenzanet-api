@@ -1,6 +1,6 @@
 
 from .management_api import ManagementAPIClient, ApiError, ReponseMeta
-from typing import Optional
+from typing import Optional,Dict
 class ResultError(ValueError):
     def __init__(self, message, result):
         super(ValueError, self).__init__(message)
@@ -40,13 +40,7 @@ class PaginatedRequest:
         self.field_items = 'items'
         self.field_total = 'itemCount'
         self.use_pagination_object = False
-        
-    def pagination_fields(self):
-        """
-            Expected fields to have in the result
-        """
-        return [self.field_page, self.field_page_size, self.field_page_count]
-    
+
     def fetch(self):
         """
             This method must be implemented by child to call the actual client method
@@ -69,6 +63,11 @@ class PaginatedRequest:
         else:
             raise StopIteration()
 
+    def check_field(self, field, data:Dict):
+        if field not in data:
+            print("Known keys", data.keys())
+            raise ResultError("Result doenst contains '%s' field" % (field), data)
+
     def run(self):
         """
             Run paginated query for a page
@@ -80,25 +79,30 @@ class PaginatedRequest:
             pagination = r['pagination']
         else:
             pagination = r
-        for field in self.pagination_fields():
-            if field not in pagination:
-                raise ResultError("Result pagination doenst contains '%s' field" % (field), pagination)
         
-        if self.field_items not in r:
-            raise ResultError("Result doenst contains '%s' field" % (field), r)
+        current = pagination[self.field_page]
         
-        page_count = pagination[self.field_page_count]
-        if self.page_count is None:
-            self.page_count = page_count
-        else:
-            if self.page_count != page_count:
-                print("Warning return page_count %d is not the same as returned in initial iteration (%d)" % (page_count, self.page_count))
+        self.check_field(self.field_page, pagination)
+        self.check_field(self.field_items, r)
 
+        fetched_count = len(r[self.field_items])
+
+        if self.page_count is None:
+            if self.field_page_count in pagination:
+                page_count = pagination[self.field_page_count]
+            else:
+                # For some query the page_count is not provided if there is only one page
+                if fetched_count == 0:
+                    page_count = current
+                else:
+                    raise ResultError("Result doenst contains '%s' field" % (self.field_page_count), r)
+        
+            self.page_count = page_count
+        
         if self.field_total in pagination:
             total = pagination[self.field_total]
             if self.total_count is None:
                 self.total_count = total
-        current = pagination[self.field_page]
         results = PaginatedResult(current, r[self.field_items])
         self.page = current + 1
         return results
