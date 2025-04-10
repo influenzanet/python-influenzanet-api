@@ -129,11 +129,15 @@ class ManagementAPIClient:
         self.token_expires = int(time()) + (token_data['expiresIn'] * 60)
         self.auth_header = {'Authorization': 'Bearer ' + self.token}
 
-    def is_token_expired(self):
+    def is_token_expired(self, within_seconds=0):
+        """
+            Check if token is expired 
+            If within_seconds is > 0, test if token will expires in the next given seconds (add a tolerance)
+        """
         if self.token_expires is None:
             return True
         current = int(time())
-        return self.token_expires < current
+        return self.token_expires < (current + within_seconds)
     
     def check_auth(self):
         if self.auth_header is None:
