@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.3.1
+
+- refactor pagination internals
+- add optional tolerance for token expiration (to be able to renew it a little before expiration)
+
 ## v1.3
 
 - Add endpoint `get_participant_state_paginated` 
